@@ -51,8 +51,6 @@ orientation = portrait
 # (bool) 是否开启全屏幕，False显示系统状态栏
 fullscreen = False
 
-p4a.url = shturl.cc/Y8Nj1tt8dTMJzdIAB9BE9HmQY1gpb2oXRmSiwV
-p4a.branch = master
 
 # (str) log级别，debug调试用；release打包建议设置 info
 log_level = debug
