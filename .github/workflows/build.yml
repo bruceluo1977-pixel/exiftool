@@ -19,6 +19,7 @@ jobs:
 
       - name: Install buildozer
         run: |
+          pip3 install --user "cython==0.29.36"
           pip3 install --user buildozer
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
