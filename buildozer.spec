@@ -58,8 +58,7 @@ log_level = debug
 
 # ===================== Release签名配置（打包正式包用） =====================
 # 生成release命令：buildozer android release
-# keystore文件放到项目根目录，填写下面，不填则输出未签名apk
-# android.release_keystore = ./my-release-key.keystore
+
 # android.release_keystore_password = 你的密钥库密码
 # android.release_key_alias = 密钥别名
 # android.release_key_password = 密钥密码
