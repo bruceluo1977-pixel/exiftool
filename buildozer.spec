@@ -10,6 +10,7 @@ version = 0.1
 
 # (str) Application package title，手机桌面显示名称
 title = EXIF水印工具
+android.accept_sdk_license = True
 
 # 指定主程序入口文件名，写你的主py文件名！
 android.entrypoint = exiftool_android_clientv1.py
