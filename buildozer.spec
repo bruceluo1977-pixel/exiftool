@@ -13,8 +13,7 @@ source.include_exts = py,png,jpg,kv,atlas
 source.exclude_dirs = tests, bin, venv, __pycache__
 source.exclude_exts = spec
 
-requirements = python3,kivy==2.3.0,plyer==2.1.0,pillow>=9.1.0,requests>=2.31.0,piexif>=1.1.3
-
+requirements = python3,kivy,plyer,pillow,requests,piexif
 android.api = 33
 android.ndk = 25b
 android.target_api = 33
