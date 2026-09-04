@@ -22,7 +22,13 @@ jobs:
           pip3 install --user "cython==0.29.36"
           pip3 install --user buildozer
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-
+      - name: Pre-download freetype (fix savannah.gnu.org timeout)
+        run: |
+          mkdir -p ~/.buildozer/android/packages
+          cd ~/.buildozer/android/packages
+          wget -q "https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz" -O freetype-2.14.1.tar.gz
+          ls -la freetype-2.14.1.tar.gz
+   
       - name: Build debug APK
         run: |
           buildozer android debug
