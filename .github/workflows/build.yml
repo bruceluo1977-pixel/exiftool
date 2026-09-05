@@ -46,14 +46,7 @@ jobs:
           echo "=== tar 包内前5个条目 ==="
           tar tzf /home/runner/.buildozer/android/packages/freetype-2.14.1.tar.gz | head -5
 
-          # 3. 运行 patch 脚本
-          python3 patch_freetype.py
-
-          # 4. 告诉 buildozer 用 patched p4a
-          echo "p4a.source_dir = /home/runner/p4a-patched" >> $GITHUB_WORKSPACE/buildozer.spec
-          echo "=== buildozer.spec p4a config ==="
-          grep p4a $GITHUB_WORKSPACE/buildozer.spec
-   
+  
       - name: Build debug APK
         run: |
           buildozer android debug
