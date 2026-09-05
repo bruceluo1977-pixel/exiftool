@@ -25,9 +25,15 @@ jobs:
       - name: Pre-download freetype (fix savannah.gnu.org timeout)
         run: |
           mkdir -p ~/.buildozer/android/packages
-          cd ~/.buildozer/android/packages
-          wget -q "https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz" -O freetype-2.14.1.tar.gz
-          ls -la freetype-2.14.1.tar.gz
+          cd /tmp
+          # 从 GitHub 官方镜像下载（Actions 服务器访问 GitHub 最快）
+          wget -q "https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz" -O freetype-raw.tar.gz
+          # 解压后目录名是 freetype-VER-2-14-1，p4a 期望的是 freetype-2.14.1，重命名后重新打包
+          tar xzf freetype-raw.tar.gz
+          mv freetype-VER-2-14-1 freetype-2.14.1
+          tar czf ~/.buildozer/android/packages/freetype-2.14.1.tar.gz freetype-2.14.1
+          # 验证文件存在且大小正常
+          ls -lh ~/.buildozer/android/packages/freetype-2.14.1.tar.gz
    
       - name: Build debug APK
         run: |
