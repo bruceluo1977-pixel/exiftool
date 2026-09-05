@@ -23,18 +23,23 @@ jobs:
           pip3 install --user buildozer
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Clone p4a and patch freetype recipe
+      - name: Clone and patch p4a (fix freetype download)
         run: |
-          mkdir -p buildozer/android/platform
-          cd buildozer/android/platform
-          git clone --depth 1 https://github.com/kivy/python-for-android.git
-          cd python-for-android
-          # 1. 把 freetype 下载地址从 savannah.gnu.org 换成 GitHub 官方镜像
+          # 1. clone 到 home 目录，buildozer 不会覆盖这里
+          cd ~
+          git clone --depth 1 https://github.com/kivy/python-for-android.git p4a-patched
+          cd p4a-patched
+          # 2. 替换 freetype 下载地址为 GitHub 官方镜像
           sed -i 's|https://download.savannah.gnu.org/releases/freetype/freetype-{version}.tar.gz|https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz|g' pythonforandroid/recipes/freetype/__init__.py
-          # 2. 添加 dir_name，匹配 GitHub archive 解压后的目录名
+          # 3. 添加 dir_name，匹配 GitHub archive 解压后的目录名
           sed -i "s|version = '2.14.1'|version = '2.14.1'\n    dir_name = 'freetype-VER-2-14-1'|" pythonforandroid/recipes/freetype/__init__.py
-          # 3. 验证修改成功
-          grep -nE "url|version|dir_name" pythonforandroid/recipes/freetype/__init__.py
+          # 4. 验证修改成功
+          echo "=== patched freetype recipe ==="
+          grep -nE "url|dir_name" pythonforandroid/recipes/freetype/__init__.py
+          # 5. 告诉 buildozer 用这个 patched 的 p4a（动态追加到 spec）
+          echo "p4a.source_dir = /home/runner/p4a-patched" >> $GITHUB_WORKSPACE/buildozer.spec
+          echo "=== buildozer.spec p4a config ==="
+          grep p4a $GITHUB_WORKSPACE/buildozer.spec
    
       - name: Build debug APK
         run: |
