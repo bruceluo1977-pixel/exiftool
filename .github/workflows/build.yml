@@ -29,26 +29,12 @@ jobs:
           cd buildozer/android/platform
           git clone --depth 1 https://github.com/kivy/python-for-android.git
           cd python-for-android
-          # 用 Python 脚本修改 freetype recipe：换下载源 + 修正目录名
-          python3 -c "
-          recipe = 'pythonforandroid/recipes/freetype/__init__.py'
-          with open(recipe, 'r') as f:
-              c = f.read()
-          c = c.replace(
-              \"url = 'https://download.savannah.gnu.org/releases/freetype/freetype-{version}.tar.gz'\",
-              \"url = 'https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz'\"
-          )
-          c = c.replace(
-              \"version = '2.14.1'\",
-              \"version = '2.14.1'\n    dir_name = 'freetype-VER-2-14-1'\"
-          )
-          with open(recipe, 'w') as f:
-              f.write(c)
-          print('=== patched freetype recipe ===')
-          with open(recipe, 'r') as f:
-              for line in f:
-                  if 'url' in line or 'version' in line or 'dir_name' in line:
-                      print(line.rstrip())
+          # 1. 把 freetype 下载地址从 savannah.gnu.org 换成 GitHub 官方镜像
+          sed -i 's|https://download.savannah.gnu.org/releases/freetype/freetype-{version}.tar.gz|https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz|g' pythonforandroid/recipes/freetype/__init__.py
+          # 2. 添加 dir_name，匹配 GitHub archive 解压后的目录名
+          sed -i "s|version = '2.14.1'|version = '2.14.1'\n    dir_name = 'freetype-VER-2-14-1'|" pythonforandroid/recipes/freetype/__init__.py
+          # 3. 验证修改成功
+          grep -nE "url|version|dir_name" pythonforandroid/recipes/freetype/__init__.py
    
       - name: Build debug APK
         run: |
