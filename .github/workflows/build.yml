@@ -23,27 +23,21 @@ jobs:
           pip3 install --user buildozer
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Pre-download freetype to p4a cache
+      - name: Pre-download freetype source
         run: |
-          # 1. p4a 期望的缓存目录是 packages/freetype/（多一层 freetype 子目录）
-          mkdir -p /home/runner/.buildozer/android/packages/freetype
           cd /tmp
-          # 2. 从 GitHub 官方镜像下载
           curl -sL "https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz" -o freetype-raw.tar.gz
-          # 3. 解压、重命名目录、重新打包
           tar xzf freetype-raw.tar.gz
-          mv freetype-VER-2-14-1 freetype-2.14.1
-          tar czf freetype-2.14.1.tar.gz freetype-2.14.1
-          # 4. 放到正确的缓存目录 packages/freetype/
-          cp freetype-2.14.1.tar.gz /home/runner/.buildozer/android/packages/freetype/
-          # 5. 关键：创建 .mark- 标记文件，否则 p4a 会删掉 tar.gz 重新下载
-          touch /home/runner/.buildozer/android/packages/freetype/.mark-freetype-2.14.1.tar.gz
-          # 6. 验证
-          ls -la /home/runner/.buildozer/android/packages/freetype/
+          # 重命名后放到 home 目录
+          mv freetype-VER-2-14-1 /home/runner/freetype-src
+          # 验证源码完整（能看到 configure 脚本）
+          ls -la /home/runner/freetype-src/configure
         
 
   
       - name: Build debug APK
+        env:
+          P4A_FREETYPE_DIR: /home/runner/freetype-src
         run: |
           buildozer android debug
 
