@@ -25,18 +25,21 @@ jobs:
 
       - name: Pre-download freetype to p4a cache
         run: |
-          # 1. 创建 p4a 的 packages 缓存目录
-          mkdir -p /home/runner/.buildozer/android/packages
+          # 1. p4a 期望的缓存目录是 packages/freetype/（多一层 freetype 子目录）
+          mkdir -p /home/runner/.buildozer/android/packages/freetype
           cd /tmp
-
-          # 2. 从 GitHub 官方镜像下载（用 curl，比 wget 可靠）
+          # 2. 从 GitHub 官方镜像下载
           curl -sL "https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz" -o freetype-raw.tar.gz
+          # 3. 解压、重命名目录、重新打包
           tar xzf freetype-raw.tar.gz
           mv freetype-VER-2-14-1 freetype-2.14.1
-          tar czf /home/runner/.buildozer/android/packages/freetype-2.14.1.tar.gz freetype-2.14.1
-
-          # 5. 验证：文件存在 + 包内目录名正确
-          ls -lh /home/runner/.buildozer/android/packages/freetype-2.14.1.tar.gz
+          tar czf freetype-2.14.1.tar.gz freetype-2.14.1
+          # 4. 放到正确的缓存目录 packages/freetype/
+          cp freetype-2.14.1.tar.gz /home/runner/.buildozer/android/packages/freetype/
+          # 5. 关键：创建 .mark- 标记文件，否则 p4a 会删掉 tar.gz 重新下载
+          touch /home/runner/.buildozer/android/packages/freetype/.mark-freetype-2.14.1.tar.gz
+          # 6. 验证
+          ls -la /home/runner/.buildozer/android/packages/freetype/
         
 
   
