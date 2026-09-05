@@ -8,8 +8,6 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-22.04
-    env:
-      P4A_FREETYPE_DIR: /home/runner/freetype-src
 
     steps:
       - name: Checkout source code
@@ -26,20 +24,38 @@ jobs:
           pip3 install --user buildozer
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Pre-download freetype source
+      - name: Clone p4a and patch freetype URL
         run: |
-          cd /tmp
-          curl -sL "https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz" -o freetype-raw.tar.gz
-          tar xzf freetype-raw.tar.gz
-          mv freetype-VER-2-14-1 /home/runner/freetype-src
-          echo "=== 验证 freetype 源码 ==="
-          ls -la /home/runner/freetype-src/configure
-          echo "P4A_FREETYPE_DIR = $P4A_FREETYPE_DIR"
+          mkdir -p buildozer/android/platform
+          cd buildozer/android/platform
+          git clone --depth 1 https://github.com/kivy/python-for-android.git
+          cd python-for-android
+          # 用 heredoc 创建 Python patch 脚本，正则替换 URL，不依赖精确匹配
+          cat > patch_freetype.py << 'PYEOF'
+          import re
+          f = 'pythonforandroid/recipes/freetype/__init__.py'
+          with open(f) as fh:
+              c = fh.read()
+          # 正则匹配任意 url = '...' 行，替换为 GitHub 镜像
+          c = re.sub(r"url\s*=\s*'[^']*'",
+              "url = 'https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz'",
+              c, count=1)
+          # 添加 dir_name，匹配 GitHub archive 解压后的目录名
+          c = c.replace("version = '2.14.1'",
+              "version = '2.14.1'\n    dir_name = 'freetype-VER-2-14-1'")
+          with open(f, 'w') as fh:
+              fh.write(c)
+          # 验证
+          print("=== patched freetype recipe ===")
+          with open(f) as fh:
+              for i, line in enumerate(fh, 1):
+                  if 'url' in line or 'dir_name' in line:
+                      print(f"{i}: {line.rstrip()}")
+          PYEOF
+          python3 patch_freetype.py
 
       - name: Build debug APK
         run: |
-          echo "P4A_FREETYPE_DIR = $P4A_FREETYPE_DIR"
-          ls -la $P4A_FREETYPE_DIR/configure
           buildozer android debug
 
       - name: Upload APK
