@@ -31,20 +31,13 @@ jobs:
 
           # 2. 从 GitHub 官方镜像下载（用 curl，比 wget 可靠）
           curl -sL "https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz" -o freetype-raw.tar.gz
-          ls -lh freetype-raw.tar.gz
-
-          # 3. 解压（GitHub archive 解压后目录名是 freetype-VER-2-14-1）
           tar xzf freetype-raw.tar.gz
-          ls -d freetype-VER-2-14-1
-
-          # 4. 重命名为 p4a 期望的目录名 freetype-2.14.1，再重新打包
           mv freetype-VER-2-14-1 freetype-2.14.1
           tar czf /home/runner/.buildozer/android/packages/freetype-2.14.1.tar.gz freetype-2.14.1
 
           # 5. 验证：文件存在 + 包内目录名正确
           ls -lh /home/runner/.buildozer/android/packages/freetype-2.14.1.tar.gz
-          echo "=== tar 包内前5个条目 ==="
-          tar tzf /home/runner/.buildozer/android/packages/freetype-2.14.1.tar.gz | head -5
+        
 
   
       - name: Build debug APK
