@@ -23,42 +23,28 @@ jobs:
           pip3 install --user buildozer
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Clone and patch p4a (fix freetype download)
+      - name: Pre-download freetype to p4a cache
         run: |
-          # 1. clone 到 home 目录，buildozer 不会覆盖这里
-          cd ~
-          git clone --depth 1 https://github.com/kivy/python-for-android.git p4a-patched
-          cd p4a-patched
-          # 2. 用 heredoc 创建 Python patch 脚本（单引号避免任何转义问题）
-          cat > patch_freetype.py << 'PYEOF'
-          recipe_path = 'pythonforandroid/recipes/freetype/__init__.py'
-          with open(recipe_path, 'r') as f:
-              content = f.read()
+          # 1. 创建 p4a 的 packages 缓存目录
+          mkdir -p /home/runner/.buildozer/android/packages
+          cd /tmp
 
-          # 替换下载地址（用字符串包含匹配，不依赖完整URL精确匹配）
-          import re
-          content = re.sub(
-              r"url\s*=\s*'[^']*savannah[^']*'",
-              "url = 'https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz'",
-              content
-          )
+          # 2. 从 GitHub 官方镜像下载（用 curl，比 wget 可靠）
+          curl -sL "https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz" -o freetype-raw.tar.gz
+          ls -lh freetype-raw.tar.gz
 
-          # 添加 dir_name
-          content = content.replace(
-              "version = '2.14.1'",
-              "version = '2.14.1'\n    dir_name = 'freetype-VER-2-14-1'"
-          )
+          # 3. 解压（GitHub archive 解压后目录名是 freetype-VER-2-14-1）
+          tar xzf freetype-raw.tar.gz
+          ls -d freetype-VER-2-14-1
 
-          with open(recipe_path, 'w') as f:
-              f.write(content)
+          # 4. 重命名为 p4a 期望的目录名 freetype-2.14.1，再重新打包
+          mv freetype-VER-2-14-1 freetype-2.14.1
+          tar czf /home/runner/.buildozer/android/packages/freetype-2.14.1.tar.gz freetype-2.14.1
 
-          # 验证
-          print("=== patched freetype recipe ===")
-          with open(recipe_path, 'r') as f:
-              for i, line in enumerate(f, 1):
-                  if 'url' in line or 'dir_name' in line:
-                      print(f"{i}: {line.rstrip()}")
-          PYEOF
+          # 5. 验证：文件存在 + 包内目录名正确
+          ls -lh /home/runner/.buildozer/android/packages/freetype-2.14.1.tar.gz
+          echo "=== tar 包内前5个条目 ==="
+          tar tzf /home/runner/.buildozer/android/packages/freetype-2.14.1.tar.gz | head -5
 
           # 3. 运行 patch 脚本
           python3 patch_freetype.py
