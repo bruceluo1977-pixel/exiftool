@@ -8,14 +8,17 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-22.04
+    env:
+      P4A_FREETYPE_DIR: /home/runner/freetype-src
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
 
       - name: Install system dependencies
         run: |
-          sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config libssl-dev python3-pip build-essential libffi-dev
+          sudo apt-get update
+          sudo apt-get install -y build-essential git python3 python3-dev python3-pip openjdk-11-jdk zip unzip wget curl libncurses5 libstdc++6 lib32stdc++6 lib32z1 zlib1g-dev
 
       - name: Install buildozer
         run: |
@@ -28,21 +31,19 @@ jobs:
           cd /tmp
           curl -sL "https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz" -o freetype-raw.tar.gz
           tar xzf freetype-raw.tar.gz
-          # 重命名后放到 home 目录
           mv freetype-VER-2-14-1 /home/runner/freetype-src
-          # 验证源码完整（能看到 configure 脚本）
+          echo "=== 验证 freetype 源码 ==="
           ls -la /home/runner/freetype-src/configure
-        
+          echo "P4A_FREETYPE_DIR = $P4A_FREETYPE_DIR"
 
-  
       - name: Build debug APK
-        env:
-          P4A_FREETYPE_DIR: /home/runner/freetype-src
         run: |
+          echo "P4A_FREETYPE_DIR = $P4A_FREETYPE_DIR"
+          ls -la $P4A_FREETYPE_DIR/configure
           buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: myapp-apk
+          name: exifwatermark-apk
           path: bin/*.apk
