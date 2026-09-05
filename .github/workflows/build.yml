@@ -29,14 +29,41 @@ jobs:
           cd ~
           git clone --depth 1 https://github.com/kivy/python-for-android.git p4a-patched
           cd p4a-patched
-          # 2. 替换 freetype 下载地址为 GitHub 官方镜像
-          sed -i 's|https://download.savannah.gnu.org/releases/freetype/freetype-{version}.tar.gz|https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz|g' pythonforandroid/recipes/freetype/__init__.py
-          # 3. 添加 dir_name，匹配 GitHub archive 解压后的目录名
-          sed -i "s|version = '2.14.1'|version = '2.14.1'\n    dir_name = 'freetype-VER-2-14-1'|" pythonforandroid/recipes/freetype/__init__.py
-          # 4. 验证修改成功
-          echo "=== patched freetype recipe ==="
-          grep -nE "url|dir_name" pythonforandroid/recipes/freetype/__init__.py
-          # 5. 告诉 buildozer 用这个 patched 的 p4a（动态追加到 spec）
+          # 2. 用 heredoc 创建 Python patch 脚本（单引号避免任何转义问题）
+          cat > patch_freetype.py << 'PYEOF'
+          recipe_path = 'pythonforandroid/recipes/freetype/__init__.py'
+          with open(recipe_path, 'r') as f:
+              content = f.read()
+
+          # 替换下载地址（用字符串包含匹配，不依赖完整URL精确匹配）
+          import re
+          content = re.sub(
+              r"url\s*=\s*'[^']*savannah[^']*'",
+              "url = 'https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz'",
+              content
+          )
+
+          # 添加 dir_name
+          content = content.replace(
+              "version = '2.14.1'",
+              "version = '2.14.1'\n    dir_name = 'freetype-VER-2-14-1'"
+          )
+
+          with open(recipe_path, 'w') as f:
+              f.write(content)
+
+          # 验证
+          print("=== patched freetype recipe ===")
+          with open(recipe_path, 'r') as f:
+              for i, line in enumerate(f, 1):
+                  if 'url' in line or 'dir_name' in line:
+                      print(f"{i}: {line.rstrip()}")
+          PYEOF
+
+          # 3. 运行 patch 脚本
+          python3 patch_freetype.py
+
+          # 4. 告诉 buildozer 用 patched p4a
           echo "p4a.source_dir = /home/runner/p4a-patched" >> $GITHUB_WORKSPACE/buildozer.spec
           echo "=== buildozer.spec p4a config ==="
           grep p4a $GITHUB_WORKSPACE/buildozer.spec
