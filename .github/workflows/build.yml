@@ -24,35 +24,25 @@ jobs:
           pip3 install --user buildozer
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Clone p4a and patch freetype URL
+      - name: Monkey patch urllib (redirect savannah to GitHub)
         run: |
-          mkdir -p buildozer/android/platform
-          cd buildozer/android/platform
-          git clone --depth 1 https://github.com/kivy/python-for-android.git
-          cd python-for-android
-          # 用 heredoc 创建 Python patch 脚本，正则替换 URL，不依赖精确匹配
-          cat > patch_freetype.py << 'PYEOF'
-          import re
-          f = 'pythonforandroid/recipes/freetype/__init__.py'
-          with open(f) as fh:
-              c = fh.read()
-          # 正则匹配任意 url = '...' 行，替换为 GitHub 镜像
-          c = re.sub(r"url\s*=\s*'[^']*'",
-              "url = 'https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz'",
-              c, count=1)
-          # 添加 dir_name，匹配 GitHub archive 解压后的目录名
-          c = c.replace("version = '2.14.1'",
-              "version = '2.14.1'\n    dir_name = 'freetype-VER-2-14-1'")
-          with open(f, 'w') as fh:
-              fh.write(c)
-          # 验证
-          print("=== patched freetype recipe ===")
-          with open(f) as fh:
-              for i, line in enumerate(fh, 1):
-                  if 'url' in line or 'dir_name' in line:
-                      print(f"{i}: {line.rstrip()}")
+          # 找到系统 Python 的 site-packages 目录
+          SITE_PACKAGES=$(python3 -c "import site; print(site.getsitepackages()[0])")
+          echo "site-packages: $SITE_PACKAGES"
+          # 创建 sitecustomize.py，Python 启动时自动加载，全局拦截下载
+          sudo tee "$SITE_PACKAGES/sitecustomize.py" > /dev/null << 'PYEOF'
+          import urllib.request
+          _orig_urlretrieve = urllib.request.urlretrieve
+          def _patched_urlretrieve(url, *args, **kwargs):
+              if 'savannah.gnu.org' in url and 'freetype' in url:
+                  new_url = 'https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz'
+                  print(f'[sitecustomize] Redirect freetype: {url} -> {new_url}')
+                  url = new_url
+              return _orig_urlretrieve(url, *args, **kwargs)
+          urllib.request.urlretrieve = _patched_urlretrieve
           PYEOF
-          python3 patch_freetype.py
+          # 验证 patch 已安装
+          python3 -c "import urllib.request; print('urlretrieve:', urllib.request.urlretrieve)"
 
       - name: Build debug APK
         run: |
