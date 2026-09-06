@@ -24,25 +24,46 @@ jobs:
           pip3 install --user buildozer
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Monkey patch urllib (redirect savannah to GitHub)
+      - name: Monkey patch urllib (patch urlopen, redirect savannah to GitHub)
         run: |
-          # 找到系统 Python 的 site-packages 目录
           SITE_PACKAGES=$(python3 -c "import site; print(site.getsitepackages()[0])")
           echo "site-packages: $SITE_PACKAGES"
-          # 创建 sitecustomize.py，Python 启动时自动加载，全局拦截下载
           sudo tee "$SITE_PACKAGES/sitecustomize.py" > /dev/null << 'PYEOF'
           import urllib.request
-          _orig_urlretrieve = urllib.request.urlretrieve
-          def _patched_urlretrieve(url, *args, **kwargs):
-              if 'savannah.gnu.org' in url and 'freetype' in url:
+          from urllib.request import Request
+
+          _orig_urlopen = urllib.request.urlopen
+
+          def _patched_urlopen(url, *args, **kwargs):
+              # 处理 url 可能是 Request 对象或字符串
+              if isinstance(url, Request):
+                  url_str = url.full_url
+              else:
+                  url_str = str(url)
+              # 拦截 freetype 从 savannah 的下载，重定向到 GitHub
+              if 'savannah.gnu.org' in url_str and 'freetype' in url_str:
                   new_url = 'https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz'
-                  print(f'[sitecustomize] Redirect freetype: {url} -> {new_url}')
-                  url = new_url
-              return _orig_urlretrieve(url, *args, **kwargs)
-          urllib.request.urlretrieve = _patched_urlretrieve
+                  print(f'[sitecustomize] Redirect freetype download:')
+                  print(f'  from: {url_str}')
+                  print(f'  to:   {new_url}')
+                  if isinstance(url, Request):
+                      url = Request(new_url, data=url.data, headers=url.headers, method=url.method)
+                  else:
+                      url = new_url
+              return _orig_urlopen(url, *args, **kwargs)
+
+          urllib.request.urlopen = _patched_urlopen
+          print('[sitecustomize] urlopen patched successfully')
           PYEOF
-          # 验证 patch 已安装
-          python3 -c "import urllib.request; print('urlretrieve:', urllib.request.urlretrieve)"
+          # 验证 patch 生效
+          echo "=== 验证 sitecustomize ==="
+          python3 -c "import urllib.request; print('urlopen:', urllib.request.urlopen)"
+          python3 -c "
+          from urllib.request import urlretrieve
+          import inspect
+          src = inspect.getsource(urlretrieve)
+          print('urlretrieve 内部调用 urlopen，会被 patch 拦截')
+          "
 
       - name: Build debug APK
         run: |
